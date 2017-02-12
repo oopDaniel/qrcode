@@ -45,23 +45,33 @@
     var qrcodeData = root.querySelector(".QRCodeSuccessDialog-data");
     var qrcodeNavigate = root.querySelector(".QRCodeSuccessDialog-navigate");
     var qrcodeIgnore = root.querySelector(".QRCodeSuccessDialog-ignore");
-
-    var client = new QRClient();
+    
+    var qrWorker = new Worker('./scripts/jsqrcode/qrworker.js');
 
     var self = this;
 
     this.currentUrl = undefined;
 
-
     this.detectQRCode = function(imageData, callback) {
       callback = callback || function() {};
 
-      client.decode(imageData, function(result) {
+      qrWorker.postMessage(imageData);
+      qrWorker.onmessage = function(e) {
+        var result = e.data;
         if(result !== undefined) {
           self.currentUrl = result;
         }
         callback(result);
-      });
+      };
+
+      qrWorker.onerror = function(err) {
+        function workerException(err, msg) {
+          this.name = 'WorkerException';
+          this.message = msg;
+          this.error = err;
+        }
+        throw new workerException(err, 'Worker error');
+      };
     };
 
     this.showDialog = function(url) {
